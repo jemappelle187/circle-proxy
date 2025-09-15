@@ -1,0 +1,21 @@
+name: Nightly selfcheck
+on:
+  schedule:
+    - cron: "0 3 * * *"   # 03:00 UTC daily
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping _selfcheck
+        run: |
+          set -euo pipefail
+          URL="https://circle-proxy.vercel.app/api/circle/_selfcheck"
+          echo "GET $URL"
+          code=$(curl -sS -o body.json -w "%{http_code}" "$URL")
+          cat body.json || true
+          if [ "$code" != "200" ]; then
+            echo "::error::Selfcheck HTTP $code"; exit 1
+          fi
+          jq -e ".ok==true and .upstreamStatus==200" body.json >/dev/null
