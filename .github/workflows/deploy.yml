@@ -1,0 +1,23 @@
+name: Deploy proxy & selfcheck
+on:
+  push:
+    branches: [ "main" ]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci || npm i --no-audit --no-fund
+      - name: Vercel deploy (Production)
+        run: npx vercel --prod --token ${{ secrets.VERCEL_TOKEN }}
+      - name: Ping _selfcheck
+        run: |
+          URL="https://circle-proxy.vercel.app/api/circle/_selfcheck"
+          echo "GET $URL"
+          code=$(curl -s -o body.txt -w "%{http_code}" "$URL")
+          cat body.txt || true
+          test "$code" = "200" || { echo "::error::Selfcheck HTTP $code"; exit 1; }
+          node -e "const fs=require('fs');const b=fs.readFileSync('body.txt','utf8');const j=JSON.parse(b);if(!(j.ok===true && j.upstreamStatus===200)){process.exit(1)}" || { echo '::error::Selfcheck JSON not ok'; exit 1; }
