@@ -1,4 +1,5 @@
 
+[![Nightly selfcheck](https://github.com/jemappelle187/circle-proxy/actions/workflows/nightly-selfcheck.yml/badge.svg)](https://github.com/jemappelle187/circle-proxy/actions/workflows/nightly-selfcheck.yml)
 
 # Circle API Proxy 
 
