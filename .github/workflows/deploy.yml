@@ -2,22 +2,44 @@ name: Deploy proxy & selfcheck
 on:
   push:
     branches: [ "main" ]
+  workflow_dispatch:
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - run: npm ci || npm i --no-audit --no-fund
+
+      - name: Install deps
+        run: npm i --no-audit --no-fund
+
+      - name: Vercel pull (link project)
+        run: npx vercel pull --yes --environment=production --token "${{ secrets.VERCEL_TOKEN }}"
+        env:
+          VERCEL_ORG_ID:     ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
       - name: Vercel deploy (Production)
-        run: npx vercel --prod --token ${{ secrets.VERCEL_TOKEN }}
+        run: npx vercel deploy --prod --yes --token "${{ secrets.VERCEL_TOKEN }}"
+        env:
+          VERCEL_ORG_ID:     ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
       - name: Ping _selfcheck
         run: |
+          set -euo pipefail
           URL="https://circle-proxy.vercel.app/api/circle/_selfcheck"
           echo "GET $URL"
-          code=$(curl -s -o body.txt -w "%{http_code}" "$URL")
-          cat body.txt || true
-          test "$code" = "200" || { echo "::error::Selfcheck HTTP $code"; exit 1; }
-          node -e "const fs=require('fs');const b=fs.readFileSync('body.txt','utf8');const j=JSON.parse(b);if(!(j.ok===true && j.upstreamStatus===200)){process.exit(1)}" || { echo '::error::Selfcheck JSON not ok'; exit 1; }
+          code=$(curl -sS -o body.json -w "%{http_code}" "$URL")
+          cat body.json || true
+          if [ "$code" != "200" ]; then
+            echo "::error::Selfcheck HTTP $code"
+            exit 1
+          fi
+          jq -e '.ok==true and .upstreamStatus==200' body.json > /dev/null
