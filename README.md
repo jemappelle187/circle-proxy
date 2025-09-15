@@ -1,4 +1,4 @@
-# Circle API Proxy
+# Circle API Proxy 
 
 A Vercel-based proxy for Circle API requests with health monitoring.
 
