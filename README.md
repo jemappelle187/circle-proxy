@@ -1,3 +1,5 @@
+
+
 # Circle API Proxy 
 
 A Vercel-based proxy for Circle API requests with health monitoring.
@@ -38,3 +40,5 @@ curl -s "https://circle-proxy.vercel.app/api/circle/_health" | jq .
 - `code: 401` - Circle reachable but credentials issue
 - `code: 502` - Network/connectivity issue
 # Auto-deploy test: Mon Sep 15 00:45:52 CEST 2025
+
+
